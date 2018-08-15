@@ -1,0 +1,45 @@
+{
+  "name": "chromecast-adapter",
+  "version": "0.0.0",
+  "description": "Chromecast adapter for the Mozilla IoT Gateway",
+  "main": "adapter.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "./build.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/freaktechnik/chromecast-adapter.git"
+  },
+  "keywords": [
+    "mozilla",
+    "iot",
+    "adapter",
+    "chromecast",
+    "google",
+    "castv"
+  ],
+  "author": "Martin Giger",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/freaktechnik/chromecast-adapter/issues"
+  },
+  "homepage": "https://github.com/freaktechnik/chromecast-adapter#readme",
+  "dependencies": {
+    "castv2-client": "^1.2.0",
+    "dnssd": "^0.4.1"
+  },
+  "files": [
+    "adapter.js",
+    "SHA256SUMS",
+    "LICENSE"
+  ],
+  "moziot": {
+    "api": {
+      "min": 1,
+      "max": 2
+    },
+    "plugin": true,
+    "exec": "{nodeLoader} {path}"
+  }
+}
