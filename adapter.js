@@ -203,7 +203,7 @@ class Chromecast extends Device {
 }
 
 class ChromecastAdapter extends Adapter {
-    constructor(addonManager, packageName, config) {
+    constructor(addonManager, packageName) {
         super(addonManager, 'ChromecastAdapter', packageName);
         addonManager.addAdapter(this);
 
@@ -231,5 +231,5 @@ class ChromecastAdapter extends Adapter {
 }
 
 module.exports = (addonManager, manifest) => {
-    const adapter = new ChromecastAdapter(addonManager, manifest.name, manifest.moziot.config)
+    const adapter = new ChromecastAdapter(addonManager, manifest.name);
 };
