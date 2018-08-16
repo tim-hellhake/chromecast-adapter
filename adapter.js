@@ -288,7 +288,7 @@ class Chromecast extends Device {
             break;
             case 'muted':
                 const volume = this.findProperty('volume');
-                await this.setVolume(volume, property.value);
+                await this.setVolume(volume.value, property.value);
             break;
             case 'on':
                 // Sadly we can't use the chromecast CRC commands - these are only available to Google.
