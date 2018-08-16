@@ -296,7 +296,7 @@ class Chromecast extends Device {
                     await this.stop();
                 }
                 else {
-                    await this.launch(); //TODO launch media player
+                    await this.launch();
                 }
             break;
             case 'playing':
@@ -337,14 +337,20 @@ class ChromecastAdapter extends Adapter {
     }
 
     startPairing(timeoutSeconds) {
-        this.browser.on('serviceUp', (service) => {
-            this.addDevice(service);
-        });
-        this.browser.start();
-        setTimeout(() => this.cancelPairing(), timeoutSeconds * 1000);
+        if(!this.timeout) {
+            this.browser.on('serviceUp', (service) => {
+                this.addDevice(service);
+            });
+            this.browser.start();
+            this.timeout = setTimeout(() => this.cancelPairing(), timeoutSeconds * 1000);
+        }
     }
 
     cancelPairing() {
+        if(this.timeout) {
+            clearTimeout(this.timeout);
+            this.timeout = undefined;
+        }
         this.browser.stop();
     }
 }
