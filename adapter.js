@@ -1,6 +1,6 @@
 "use strict";
 
-const { Client, Application } = require("castv2-client");
+const { Client, Application, MediaController, DefaultMediaReceiver } = require("castv2-client");
 const mdns = require("dnssd");
 
 let Adapter, Device, Property, Event;
@@ -37,6 +37,17 @@ class ChromecastProperty extends Property {
     }
 }
 
+class ReadonlyProperty extends Property {
+    constructor(device, name, description, value) {
+        description.writable = false;
+        super(device, name, description, value);
+    }
+
+    setValue(value) {
+        return Promise.reject("Read only property");
+    }
+}
+
 class Chromecast extends Device {
     constructor(adapter, host) {
         super(adapter, host.fullname);
@@ -44,7 +55,7 @@ class Chromecast extends Device {
         this.address = host.addresses[0];
         this.setName(host.txt.fn);
         this.description = host.txt.md;
-        //this["@type"] = [ "MediaPlayer" ];
+        this["@type"] = [ "OnOffSwitch" ];
 
         this.properties.set('volume', new ChromecastProperty(this, 'volume', {
             label: 'Volume',
@@ -53,19 +64,30 @@ class Chromecast extends Device {
             "@type": 'LevelProperty'
         }, 100));
 
-        this.addAction('stop', {
-            label: 'Stop',
-            description: 'Stop currently casted application'
-        });
+        this.properties.set('on', new ChromecastProperty(this, 'on', {
+            label: 'On/Off',
+            type: "boolean",
+            "@type": "OnOffProperty"
+        }, false));
 
-        this.addEvent('launch', {
-            type: "string",
-            name: 'appID'
-        });
-        this.addEvent('stop', {
-            type: "string",
-            name: 'appID'
-        });
+        this.properties.set('playing', new ChromecastProperty(this, 'playing', {
+            label: 'Play/Pause',
+            type: 'boolean',
+            "@type": "BooleanProperty"
+        }, false));
+
+        this.properties.set('muted', new ChromecastProperty(this, 'muted', {
+            label: 'Muted',
+            type: 'boolean',
+            "@type": "BooleanProperty"
+        }, false));
+
+        this.properties.set('app', new ReadonlyProperty(this, 'app', {
+            label: 'App',
+            type: 'string'
+        }, ''));
+
+        //TODO readonly props for title, artist etc.?
 
         this.ready = this.connect();
     }
@@ -97,24 +119,71 @@ class Chromecast extends Device {
         this.updateProp('volume', vol.level * 100);
 
         const sessions = await this.getSessions();
-        if(sessions.length && !sessions[0].isIdleScreen) {
-            this.currentApplication = sessions[0].appId;
+        if(sessions.length) {
+            this.updateProp('app', sessions[0].displayName);
+            if(!sessions[0].isIdleScreen) {
+                this.currentApplication = sessions[0].appId;
+                this.updateProp('on', true);
+                this.joinMediaSession(sessions[0]);
+            }
         }
 
         this.client.on('status', (status) => {
             if(!status.applications && this.currentApplication) {
-                this.eventNotify(new Event(this, 'stop', this.currentApplication));
+                this.updateProp('on', false);
+                this.updateProp('app', '');
                 this.currentApplication = undefined;
+                this.media = undefined;
             }
             else if(status.applications && status.applications[0].appId != this.currentApplication && !status.applications[0].isIdleScreen) {
-                this.eventNotify(new Event(this, 'launch', status.applications[0].appId));
+                this.updateProp('on', true);
+                this.updateProp('app', status.applications[0].displayName);
                 this.currentApplication = status.applications[0].appId;
+                this.joinMediaSession(status.applications);
+            }
+            else if(status.applications && status.applications.length) {
+                this.updateProp('app', status.applications[0].displayName);
             }
             this.updateProp('volume', status.volume.level * 100);
+            this.updateProp('muted', status.volume.muted);
             this.volumeStep = status.volume.stepInterval;
         });
 
         this.adapter.handleDeviceAdded(this);
+    }
+
+    updatePlaying(playerState) {
+        this.updateProp('playing', playerState === 'PLAYING' || playerState === 'BUFFERING');
+    }
+
+    joinMediaSession(session) {
+        const FakeApp = class extends DefaultMediaReceiver {}
+        FakeApp.APP_ID = session.appId;
+        this.client.join(session, FakeApp, (e, r) => {
+            if(e) {
+                console.error(e);
+            }
+            else {
+                this.media = r;
+                this.media.on('status', (status) => {
+                    // Shape: https://developers.google.com/cast/docs/reference/messages#MediaStatusMess
+                    this.updatePlaying(status.playerState);
+                });
+                this.media.on('close', () => {
+                    this.updateProp('playing', false);
+                    this.media = undefined;
+                    this.transportId = undefined;
+                });
+                this.media.getStatus((e, r) => {
+                    if(e) {
+                        console.error(e);
+                    }
+                    else {
+                        this.updatePlaying(r.playerState);
+                    }
+                });
+            }
+        });
     }
 
     updateProp(propertyName, value) {
@@ -123,12 +192,12 @@ class Chromecast extends Device {
         super.notifyPropertyChanged(property);
     }
 
-    setVolume(value) {
+    setVolume(level, muted) {
         return new Promise((resolve, reject) => {
             this.client.setVolume({
                 controlType: 'attenuation', //TODO does this have to match what we get?
-                level: value,
-                muted: value <= 0,
+                level: level / 100,
+                muted,
                 stepInterval: this.volumeStep
             }, (e, r) => {
                 if(e) {
@@ -158,7 +227,6 @@ class Chromecast extends Device {
         const sessions = await this.getSessions();
         if(sessions && sessions.length && !sessions[0].isIdleScreen)
         {
-            console.log(sessions);
             const app = await new Promise((resolve, reject) => {
                 this.client.join(sessions[0], Application, (e, r) => {
                     if(e) {
@@ -182,23 +250,71 @@ class Chromecast extends Device {
         }
     }
 
+    async launch(appId = DefaultMediaReceiver.APP_ID) {
+        const availability = await new Promise((resolve, reject) => {
+            this.client.getAppAvailability(appId, (e, r) => {
+                if(e) {
+                    reject(e);
+                }
+                else {
+                    resolve(r);
+                }
+            });
+        });
+        if(availability[appId]) {
+            let TempApp = class extends Application {};
+            TempApp.APP_ID = appId;
+            if(appId = DefaultMediaReceiver) {
+                TempApp = DefaultMediaReceiver;
+            }
+            return new Promise((resolve, reject) => {
+                this.client.launch(TempApp, (e, r) => {
+                    if(e) {
+                        reject(e);
+                    }
+                    else {
+                        resolve(r);
+                    }
+                });
+            });
+        }
+    }
+
     async notifyPropertyChanged(property) {
         switch(property.name) {
             case 'volume':
-                await this.setVolume(property.value / 100);
+                const muted = this.findProperty('muted');
+                await this.setVolume(property.value, muted.value);
+            break;
+            case 'muted':
+                const volume = this.findProperty('volume');
+                await this.setVolume(volume, property.value);
+            break;
+            case 'on':
+                // Sadly we can't use the chromecast CRC commands - these are only available to Google.
+                if(!property.value) {
+                    await this.stop();
+                }
+                else {
+                    await this.launch(); //TODO launch media player
+                }
+            break;
+            case 'playing':
+                if(this.media) {
+                    await new Promise((resolve, reject) => {
+                        this.media[property.value ? 'play' : 'pause']((e, r) => {
+                            if(e) {
+                                reject(e);
+                            }
+                            else {
+                                resolve(r);
+                            }
+                        });
+                    });
+                }
             break;
         }
         super.notifyPropertyChanged(property);
-    }
-
-    async performAction(action) {
-        switch(action.name) {
-            case "stop":
-                action.start();
-                await this.stop();
-                action.finish();
-            break;
-        }
     }
 }
 
@@ -213,6 +329,9 @@ class ChromecastAdapter extends Adapter {
     }
 
     addDevice(device) {
+        if(device.fullname in this.devices) {
+            throw 'Device: ' + device.fullname + ' already exists.';
+        }
         const dev = new Chromecast(this, device);
         return dev.ready;
     }
