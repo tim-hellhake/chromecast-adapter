@@ -312,6 +312,9 @@ class Chromecast extends Device {
                         });
                     });
                 }
+                else {
+                    throw "Can't change playing when nothing is playing";
+                }
             break;
         }
         super.notifyPropertyChanged(property);
