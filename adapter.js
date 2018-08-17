@@ -89,10 +89,10 @@ class Chromecast extends Device {
 
         //TODO readonly props for title, artist etc.?
 
-        this.ready = this.connect();
+        this.ready = this.connect().then(() => this.adapter.handleDeviceAdded(this));
     }
 
-    async connect() {
+    async connect(initial = true) {
         try {
             await new Promise((resolve, reject) => {
                 this.client.connect(this.address, () => {
@@ -104,8 +104,35 @@ class Chromecast extends Device {
         }
         catch(e) {
             this.client.close();
+            if(!initial) {
+                this.adapter.removeThing(this);
+            }
             throw e;
         }
+
+        this.client.on('close', async () => {
+            try {
+                await new Promise((resolve, reject) => {
+                    this.client.connect(this.address, () => {
+                        resolve();
+                        this.client.removeListener('error', reject);
+                    });
+                    this.client.once('error', reject);
+                });
+            }
+            catch(e) {
+                this.client.close();
+                this.adapter.removeThing(this);
+                throw e;
+            }
+        });
+
+        this.client.on('error', (e) => {
+            console.warn("Re-creating client after", e);
+            this.client.close();
+            this.client = new Client();
+            this.connect(false);
+        });
 
         const vol = await new Promise((resolve, reject) => this.client.getVolume((e, r) => {
             if(e) {
@@ -139,17 +166,18 @@ class Chromecast extends Device {
                 this.updateProp('on', true);
                 this.updateProp('app', status.applications[0].displayName);
                 this.currentApplication = status.applications[0].appId;
-                this.joinMediaSession(status.applications);
+                this.joinMediaSession(status.applications[0]);
             }
             else if(status.applications && status.applications.length) {
                 this.updateProp('app', status.applications[0].displayName);
+                if(status.applications[0].transportId && !this.media) {
+                    this.joinMediaSession(status.applications[0]);
+                }
             }
             this.updateProp('volume', status.volume.level * 100);
             this.updateProp('muted', status.volume.muted);
             this.volumeStep = status.volume.stepInterval;
         });
-
-        this.adapter.handleDeviceAdded(this);
     }
 
     updatePlaying(playerState) {
@@ -159,6 +187,9 @@ class Chromecast extends Device {
     joinMediaSession(session) {
         const FakeApp = class extends DefaultMediaReceiver {}
         FakeApp.APP_ID = session.appId;
+        if(!session.transportId) {
+            return;
+        }
         this.client.join(session, FakeApp, (e, r) => {
             if(e) {
                 console.error(e);
@@ -178,8 +209,11 @@ class Chromecast extends Device {
                     if(e) {
                         console.error(e);
                     }
-                    else {
+                    else if(r) {
                         this.updatePlaying(r.playerState);
+                    }
+                    else {
+                        this.updatePlaying(false);
                     }
                 });
             }
@@ -188,17 +222,16 @@ class Chromecast extends Device {
 
     updateProp(propertyName, value) {
         const property = this.findProperty(propertyName);
-        property.setCachedValue(value);
-        super.notifyPropertyChanged(property);
+        if(property.value !== value) {
+            property.setCachedValue(value);
+            super.notifyPropertyChanged(property);
+        }
     }
 
-    setVolume(level, muted) {
+    setVolume(value, what = 'level') {
         return new Promise((resolve, reject) => {
             this.client.setVolume({
-                controlType: 'attenuation', //TODO does this have to match what we get?
-                level: level / 100,
-                muted,
-                stepInterval: this.volumeStep
+                [what]: value
             }, (e, r) => {
                 if(e) {
                     reject(e);
@@ -283,12 +316,10 @@ class Chromecast extends Device {
     async notifyPropertyChanged(property) {
         switch(property.name) {
             case 'volume':
-                const muted = this.findProperty('muted');
-                await this.setVolume(property.value, muted.value);
+                await this.setVolume(property.value / 100);
             break;
             case 'muted':
-                const volume = this.findProperty('volume');
-                await this.setVolume(volume.value, property.value);
+                await this.setVolume(property.value, property.name);
             break;
             case 'on':
                 // Sadly we can't use the chromecast CRC commands - these are only available to Google.
@@ -313,6 +344,7 @@ class Chromecast extends Device {
                     });
                 }
                 else {
+                    property.setCachedValue(!property.value);
                     throw "Can't change playing when nothing is playing";
                 }
             break;
@@ -333,7 +365,8 @@ class ChromecastAdapter extends Adapter {
 
     addDevice(device) {
         if(device.fullname in this.devices) {
-            throw 'Device: ' + device.fullname + ' already exists.';
+            console.warn('Device: ' + device.fullname + ' already exists.');
+            return;
         }
         const dev = new Chromecast(this, device);
         return dev.ready;
