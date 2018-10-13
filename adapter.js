@@ -131,7 +131,8 @@ class Chromecast extends Device {
             console.warn("Re-creating client after", e);
             this.client.close();
             this.client = new Client();
-            this.connect(false);
+            this.connect(false).catch(console.error);
+            //TODO set a timeout or something?
         });
 
         const vol = await new Promise((resolve, reject) => this.client.getVolume((e, r) => {
