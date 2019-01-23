@@ -58,32 +58,32 @@ class Chromecast extends Device {
         this["@type"] = [ "OnOffSwitch" ];
 
         this.properties.set('volume', new ChromecastProperty(this, 'volume', {
-            label: 'Volume',
-            type: 'number',
+            title: 'Volume',
+            type: 'integer',
             unit: 'percent',
             "@type": 'LevelProperty'
         }, 100));
 
         this.properties.set('on', new ChromecastProperty(this, 'on', {
-            label: 'On/Off',
+            title: 'On/Off',
             type: "boolean",
             "@type": "OnOffProperty"
         }, false));
 
         this.properties.set('playing', new ChromecastProperty(this, 'playing', {
-            label: 'Play/Pause',
+            title: 'Play/Pause',
             type: 'boolean',
             "@type": "BooleanProperty"
         }, false));
 
         this.properties.set('muted', new ChromecastProperty(this, 'muted', {
-            label: 'Muted',
+            title: 'Muted',
             type: 'boolean',
             "@type": "BooleanProperty"
         }, false));
 
         this.properties.set('app', new ReadonlyProperty(this, 'app', {
-            label: 'App',
+            title: 'App',
             type: 'string'
         }, ''));
 
