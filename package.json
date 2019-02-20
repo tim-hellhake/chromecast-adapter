@@ -1,7 +1,7 @@
 {
   "name": "chromecast-adapter",
   "display_name": "Chromecast",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Chromecast adapter for the Mozilla IoT Gateway",
   "main": "adapter.js",
   "scripts": {
