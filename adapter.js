@@ -123,6 +123,7 @@ class Chromecast extends Device {
             catch(e) {
                 this.client.close();
                 this.adapter.removeThing(this);
+                this.adapter.startPairing(60);
                 throw e;
             }
         });
@@ -131,8 +132,9 @@ class Chromecast extends Device {
             console.warn("Re-creating client after", e);
             this.client.close();
             this.client = new Client();
-            this.connect(false).catch(console.error);
-            //TODO set a timeout or something?
+            this.connect(false).catch(() => {
+                this.adapter.startPairing(60);
+            });
         });
 
         const vol = await new Promise((resolve, reject) => this.client.getVolume((e, r) => {
