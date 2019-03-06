@@ -92,6 +92,11 @@ class Chromecast extends Device {
         this.ready = this.connect().then(() => this.adapter.handleDeviceAdded(this));
     }
 
+    unload() {
+        this.client.removeAllListeners('close');
+        this.client.close();
+    }
+
     async connect(initial = true) {
         try {
             await new Promise((resolve, reject) => {
@@ -103,9 +108,10 @@ class Chromecast extends Device {
             });
         }
         catch(e) {
-            this.client.close();
+            this.unload();
             if(!initial) {
                 this.adapter.removeThing(this);
+                e.removedThing = true;
             }
             throw e;
         }
@@ -121,7 +127,7 @@ class Chromecast extends Device {
                 });
             }
             catch(e) {
-                this.client.close();
+                this.unload();
                 this.adapter.removeThing(this);
                 this.adapter.startPairing(60);
                 throw e;
@@ -132,7 +138,12 @@ class Chromecast extends Device {
             console.warn("Re-creating client after", e);
             this.client.close();
             this.client = new Client();
-            this.connect(false).catch(() => {
+            this.connect(false).catch((e) => {
+                if(!e.removedThing) {
+                    this.unload();
+                    this.adapter.removeThing(this);
+                }
+
                 this.adapter.startPairing(60);
             });
         });
