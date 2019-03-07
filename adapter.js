@@ -372,8 +372,6 @@ class ChromecastAdapter extends Adapter {
         super(addonManager, 'ChromecastAdapter', packageName);
         addonManager.addAdapter(this);
 
-        this.browser = mdns.Browser(mdns.tcp('googlecast'));
-
         this.startPairing(60);
     }
 
@@ -388,6 +386,7 @@ class ChromecastAdapter extends Adapter {
 
     startPairing(timeoutSeconds) {
         if(!this.timeout) {
+            this.browser = mdns.Browser(mdns.tcp('googlecast'));
             this.browser.on('serviceUp', (service) => {
                 this.addDevice(service);
             });
@@ -399,9 +398,12 @@ class ChromecastAdapter extends Adapter {
     cancelPairing() {
         if(this.timeout) {
             clearTimeout(this.timeout);
-            this.timeout = undefined;
+            delete this.timeout;
         }
-        this.browser.stop();
+        if(this.browser) {
+            this.browser.stop();
+            delete this.browser;
+        }
     }
 }
 
