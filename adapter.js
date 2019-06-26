@@ -297,8 +297,7 @@ class Chromecast extends Device {
     if (availability[appId]) {
       let TempApp = class extends Application {};
       TempApp.APP_ID = appId;
-      // eslint-disable-next-line no-cond-assign
-      if (appId = DefaultMediaReceiver) {
+      if (appId === DefaultMediaReceiver.APP_ID) {
         TempApp = DefaultMediaReceiver;
       }
       return new Promise((resolve, reject) => {
