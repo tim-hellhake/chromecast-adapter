@@ -1,17 +1,17 @@
 {
   "name": "chromecast-adapter",
   "display_name": "Chromecast",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Chromecast adapter for the Mozilla IoT Gateway",
   "main": "adapter.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint .",
     "licenses": "./gather-licenses.js",
-    "build": "./build.sh"
+    "build": "./package.sh"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/freaktechnik/chromecast-adapter.git"
+    "url": "git+https://github.com/mrstegeman/chromecast-adapter.git"
   },
   "keywords": [
     "mozilla",
@@ -21,12 +21,12 @@
     "google",
     "castv"
   ],
-  "author": "Martin Giger",
+  "author": "Michael Stegeman",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/freaktechnik/chromecast-adapter/issues"
+    "url": "https://github.com/mrstegeman/chromecast-adapter/issues"
   },
-  "homepage": "https://github.com/freaktechnik/chromecast-adapter#readme",
+  "homepage": "https://github.com/mrstegeman/chromecast-adapter#readme",
   "dependencies": {
     "castv2-client": "^1.2.0",
     "dnssd": "^0.4.1"
@@ -38,13 +38,15 @@
   ],
   "moziot": {
     "api": {
-      "min": 1,
+      "min": 2,
       "max": 2
     },
     "plugin": true,
     "exec": "{nodeLoader} {path}"
   },
   "devDependencies": {
+    "babel-eslint": "^10.0.2",
+    "eslint": "^6.0.1",
     "nlf": "^2.0.1"
   }
 }
