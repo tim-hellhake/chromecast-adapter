@@ -11,6 +11,7 @@ const {
   Device,
   Property,
 } = require('gateway-addon');
+const manifest = require('./manifest.json');
 
 class ChromecastProperty extends Property {
   constructor(device, name, description, value) {
@@ -351,8 +352,8 @@ class Chromecast extends Device {
 }
 
 class ChromecastAdapter extends Adapter {
-  constructor(addonManager, packageName) {
-    super(addonManager, 'ChromecastAdapter', packageName);
+  constructor(addonManager) {
+    super(addonManager, 'ChromecastAdapter', manifest.id);
     addonManager.addAdapter(this);
 
     this.startPairing(60);
@@ -391,6 +392,6 @@ class ChromecastAdapter extends Adapter {
   }
 }
 
-module.exports = (addonManager, manifest) => {
-  new ChromecastAdapter(addonManager, manifest.name);
+module.exports = (addonManager) => {
+  new ChromecastAdapter(addonManager);
 };

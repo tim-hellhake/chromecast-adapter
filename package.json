@@ -1,8 +1,8 @@
 {
   "name": "chromecast-adapter",
   "display_name": "Chromecast",
-  "version": "0.3.4",
-  "description": "Chromecast adapter for the Mozilla IoT Gateway",
+  "version": "0.4.0",
+  "description": "Chromecast adapter for the Mozilla WebThings Gateway",
   "main": "adapter.js",
   "scripts": {
     "lint": "eslint .",
@@ -32,9 +32,11 @@
     "dnssd": "^0.4.1"
   },
   "files": [
-    "adapter.js",
+    "LICENSE",
+    "README.md",
     "SHA256SUMS",
-    "LICENSE"
+    "adapter.js",
+    "manifest.json"
   ],
   "moziot": {
     "api": {
@@ -46,7 +48,7 @@
   },
   "devDependencies": {
     "babel-eslint": "^10.0.3",
-    "eslint": "^6.2.2",
+    "eslint": "^6.5.1",
     "nlf": "^2.1.1"
   }
 }

@@ -1,0 +1,19 @@
+{
+  "author": "Michael Stegeman",
+  "description": "Chromecast adapter for the Mozilla WebThings Gateway",
+  "gateway_specific_settings": {
+    "webthings": {
+      "exec": "{nodeLoader} {path}",
+      "primary_type": "adapter",
+      "strict_max_version": "*",
+      "strict_min_version": "0.10.0"
+    }
+  },
+  "homepage_url": "https://github.com/mrstegeman/chromecast-adapter#readme",
+  "id": "chromecast-adapter",
+  "license": "MIT",
+  "manifest_version": 1,
+  "name": "Chromecast",
+  "short_name": "Chromecast",
+  "version": "0.4.0"
+}
