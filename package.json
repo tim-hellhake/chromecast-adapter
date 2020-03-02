@@ -1,7 +1,7 @@
 {
   "name": "chromecast-adapter",
   "display_name": "Chromecast",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Chromecast adapter for the Mozilla WebThings Gateway",
   "main": "adapter.js",
   "scripts": {
@@ -47,8 +47,8 @@
     "exec": "{nodeLoader} {path}"
   },
   "devDependencies": {
-    "babel-eslint": "^10.0.3",
-    "eslint": "^6.5.1",
+    "babel-eslint": "^10.1.0",
+    "eslint": "^6.8.0",
     "nlf": "^2.1.1"
   }
 }

@@ -44,9 +44,9 @@ class Chromecast extends Device {
     super(adapter, host.fullname);
     this.client = new Client();
     this.address = host.addresses[0];
-    this.setName(host.txt.fn);
+    this.setTitle(host.txt.fn);
     this.description = host.txt.md;
-    this['@type'] = [ 'OnOffSwitch' ];
+    this['@type'] = ['OnOffSwitch'];
 
     this.properties.set('volume', new ChromecastProperty(this, 'volume', {
       title: 'Volume',
@@ -353,38 +353,44 @@ class Chromecast extends Device {
 
 class ChromecastAdapter extends Adapter {
   constructor(addonManager) {
-    super(addonManager, 'ChromecastAdapter', manifest.id);
+    super(addonManager, manifest.id, manifest.id);
     addonManager.addAdapter(this);
 
-    this.startPairing(60);
+    this.startDiscovery();
   }
 
-  addDevice(device) {
+  startPairing() {
+    if (this.browser) {
+      for (const service of this.browser.list()) {
+        this.handleServiceUp(service);
+      }
+    }
+  }
+
+  handleServiceUp(device) {
     if (device.fullname in this.devices) {
-      console.warn(`Device: ${device.fullname} already exists.`);
+      this.devices[device.fullname].connectedNotify(true);
       return;
     }
+
     const dev = new Chromecast(this, device);
     return dev.ready;
   }
 
-  startPairing(timeoutSeconds) {
-    if (!this.timeout) {
-      this.browser = mdns.Browser(mdns.tcp('googlecast'));
-      this.browser.on('serviceUp', (service) => {
-        this.addDevice(service);
-      });
-      this.browser.start();
-      this.timeout =
-        setTimeout(() => this.cancelPairing(), timeoutSeconds * 1000);
+  handleServiceDown(device) {
+    if (device.fullname in this.devices) {
+      this.devices[device.fullname].connectedNotify(false);
     }
   }
 
-  cancelPairing() {
-    if (this.timeout) {
-      clearTimeout(this.timeout);
-      delete this.timeout;
-    }
+  startDiscovery() {
+    this.browser = mdns.Browser(mdns.tcp('googlecast'));
+    this.browser.on('serviceUp', this.handleServiceUp.bind(this));
+    this.browser.on('serviceDown', this.handleServiceDown.bind(this));
+    this.browser.start();
+  }
+
+  unload() {
     if (this.browser) {
       this.browser.stop();
       delete this.browser;

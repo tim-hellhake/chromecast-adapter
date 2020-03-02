@@ -1,19 +1,19 @@
 #!/bin/bash -e
 
-rm -rf *.tgz package/
-TARFILE=$(npm pack)
+TARFILE=`npm pack`
+
 tar xzf ${TARFILE}
 npm ci
 npm run licenses
 cd package
-sha256sum LICENSE README.md > SHA256SUMS
+shasum --algorithm 256 manifest.json package.json adapter.js LICENSE README.md > SHA256SUMS
 cd ..
-sha256sum manifest.json package.json adapter.js >> package/SHA256SUMS
 rm -rf node_modules
 npm ci --production
-rm -rf node_modules/.bin
-find node_modules -type f -exec sha256sum {} \; >> package/SHA256SUMS
+find node_modules \( -type f -o -type l \) -exec shasum --algorithm 256 {} \; >> package/SHA256SUMS
 cp -r node_modules ./package
 tar czf ${TARFILE} package
-rm -rf package
-echo "Created ${TARFILE}"
+
+shasum --algorithm 256 ${TARFILE} > ${TARFILE}.sha256sum
+
+rm -rf SHA256SUMS package
