@@ -20,10 +20,41 @@ class ChromecastProperty extends Property {
   }
 
   async setValue(value) {
-    if (value !== this.value) {
-      this.setCachedValue(value);
-      await this.device.notifyPropertyChanged(this);
+    switch (this.name) {
+      case 'volume':
+        await this.device.setVolume(value / 100);
+        break;
+      case 'muted':
+        await this.device.setVolume(value, this.name);
+        break;
+      case 'on':
+        // Sadly we can't use the chromecast CRC commands - these are only
+        // available to Google.
+        if (!value) {
+          await this.device.stop();
+        } else {
+          await this.device.launch();
+        }
+        break;
+      case 'playing':
+        if (this.device.media) {
+          await new Promise((resolve, reject) => {
+            this.device.media[value ? 'play' : 'pause']((e, r) => {
+              if (e) {
+                reject(e);
+              } else {
+                resolve(r);
+              }
+            });
+          });
+        } else {
+          this.setCachedValueAndNotify(!value);
+          throw 'Can\'t change playing when nothing is playing';
+        }
+        break;
     }
+
+    this.setCachedValueAndNotify(value);
     return this.value;
   }
 }
@@ -230,8 +261,7 @@ class Chromecast extends Device {
   updateProp(propertyName, value) {
     const property = this.findProperty(propertyName);
     if (property.value !== value) {
-      property.setCachedValue(value);
-      super.notifyPropertyChanged(property);
+      property.setCachedValueAndNotify(value);
     }
   }
 
@@ -311,43 +341,6 @@ class Chromecast extends Device {
         });
       });
     }
-  }
-
-  async notifyPropertyChanged(property) {
-    switch (property.name) {
-      case 'volume':
-        await this.setVolume(property.value / 100);
-        break;
-      case 'muted':
-        await this.setVolume(property.value, property.name);
-        break;
-      case 'on':
-        // Sadly we can't use the chromecast CRC commands - these are only
-        // available to Google.
-        if (!property.value) {
-          await this.stop();
-        } else {
-          await this.launch();
-        }
-        break;
-      case 'playing':
-        if (this.media) {
-          await new Promise((resolve, reject) => {
-            this.media[property.value ? 'play' : 'pause']((e, r) => {
-              if (e) {
-                reject(e);
-              } else {
-                resolve(r);
-              }
-            });
-          });
-        } else {
-          property.setCachedValue(!property.value);
-          throw 'Can\'t change playing when nothing is playing';
-        }
-        break;
-    }
-    super.notifyPropertyChanged(property);
   }
 }
 
