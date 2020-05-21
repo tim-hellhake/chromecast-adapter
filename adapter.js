@@ -388,6 +388,8 @@ class ChromecastAdapter extends Adapter {
       this.browser.stop();
       delete this.browser;
     }
+
+    return Promise.resolve();
   }
 }
 
