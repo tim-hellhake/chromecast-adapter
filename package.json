@@ -12,14 +12,6 @@
     "type": "git",
     "url": "git+https://github.com/mrstegeman/chromecast-adapter.git"
   },
-  "keywords": [
-    "mozilla",
-    "webthings",
-    "adapter",
-    "chromecast",
-    "google",
-    "castv"
-  ],
   "author": "Michael Stegeman",
   "license": "MIT",
   "bugs": {
