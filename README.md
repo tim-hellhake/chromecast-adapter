@@ -1,6 +1,6 @@
 # chromecast-adapter
 
-Chromecast adapter for the [Mozilla IoT gateway](https://iot.mozilla.org).
+Chromecast adapter for [WebThings Gateway](https://github.com/WebThingsIO/gateway).
 
 Lets the gateway interact with Chromecast devices.
 

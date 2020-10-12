@@ -1,6 +1,6 @@
 {
   "author": "Michael Stegeman",
-  "description": "Chromecast adapter for the Mozilla WebThings Gateway",
+  "description": "Chromecast adapter for the WebThings Gateway",
   "gateway_specific_settings": {
     "webthings": {
       "exec": "{nodeLoader} {path}",
@@ -15,5 +15,5 @@
   "manifest_version": 1,
   "name": "Chromecast",
   "short_name": "Chromecast",
-  "version": "0.4.4"
+  "version": "0.4.5"
 }
